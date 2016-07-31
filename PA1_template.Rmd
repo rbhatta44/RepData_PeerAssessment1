@@ -1,25 +1,82 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+output: word_document
 ---
+---
+# Reproducible Research Course Project 1
 
+###Loading and processing the data
+```{r}
+setwd("~/Desktop/coursera/reproducible_research/project1")
+mydata <- read.csv("activity.csv")
+```
+###What is mean total number of steps taken per day?
+For this, we will ignore the missing values in the dataset.
 
-## Loading and preprocessing the data
+###1. Calculate the total number of steps taken per day.
+```{r}
+steps_per_day <- tapply(mydata$steps, mydata$date, sum, na.rm=TRUE)
+```
 
+###2. Histogram of the total number of steps taken per day
 
+```{r}
+hist(steps_per_day, xlab='Total steps per day', ylab='Frequency', col="blue")
+```
 
-## What is mean total number of steps taken per day?
+###3. Calculate mean and median total number of steps taken per day
 
+```{r}
+s_mean <- mean(steps_per_day)
+s_median <- median(steps_per_day)
+```
+###What is the average daily activity pattern?
+```{r}
+average_daily_activity <- aggregate(x=list(meanSteps=mydata$steps), by=list(interval=mydata$interval), FUN=mean, na.rm=TRUE)
+```
+###1. Make a time series plot of the 5-minute interval and the average number of steps taken
+```{r}
+library(ggplot2)
+ggplot(data=average_daily_activity, aes(x=interval, y=meanSteps)) +
+    geom_line() +
+    xlab("5-minute interval") +
+    ylab("average number of steps")
+```
 
+###2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
-## What is the average daily activity pattern?
+```{r}
+maxSteps <- which.max(average_daily_activity$meanSteps)
+Timemaxsteps <- gsub("([0-9]{1,2})([0-9]{2})", "\\1:\\2",average_daily_activity[maxSteps,'interval'])
+```
+###Imputing missing values
+1. Calculate and report the total number of missing values in the dataset.
 
+2. Devise a strategy for  lling in all of the missing values in the dataset.
 
+3. Create a new dataset that is equal to the original dataset but with the missing data  lled in.
 
-## Imputing missing values
+4. Make a histogram of the total number of steps taken each day.
+Combined codes for 1 through 4 are as follows:
+```{r}
+missing <- length(which(is.na(mydata$steps)))
+newdata <- mydata
+newdata$steps[is.na(newdata$steps)] <- median(mydata$steps, na.rm=TRUE)
+inputednewdata <- aggregate(steps ~ date, data=newdata, sum, na.rm=TRUE)
+hist(inputednewdata$steps, xlab='Total steps per day (new)', ylab='Frequency', col="blue")
+```
 
+###Are there differences in activity patterns between weekdays and weekends?
 
-
-## Are there differences in activity patterns between weekdays and weekends?
+###1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+```{r}
+newdata$date <- as.Date(newdata$date)
+newdata$dayname <- weekdays(newdata$date)
+newdata$weekend <- as.factor(ifelse(newdata$dayname == "Saturday" | newdata$dayname == "Sunday", "weekend", "weekday"))
+```
+###2. Make a panel plot containing a time series plot 
+```{r}
+library(lattice)
+plotdata <- aggregate(steps ~ interval + weekend, newdata, mean)
+xyplot(steps ~ interval | factor(weekend), data=plotdata, type="l", col="black")
+```
+    
